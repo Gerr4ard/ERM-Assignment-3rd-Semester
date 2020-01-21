@@ -1,0 +1,122 @@
+---
+title: "PartB"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries 
+```{r}
+#loading all required libraries here first : 
+library(tidyverse)
+```
+
+## Reading dataset
+
+```{r}
+#importing data and store it to variable "data1"  then vewing structure  of these data
+data <- read.csv(file ="C:/Users/Ghars/Documents/data/sheet1_partB.csv", sep = ";")
+
+str(data)
+```
+
+## B1
+IV = ECTS credits in subject X obtained , DV = interest of students in this subject.
+
+Using Pearson Correlation test: 
+
+H0 : there is no association between subject ECTS-credits and interest of students in this subject(R= zero)
+
+HA : there is an association between subject ECTS-credits and interest of students in this subject(R not equal to zero)
+
+Significance level or proability of type 1 error = 5 % 
+
+For this case we will use T statistics with df = n-2 = 98 
+we will reject the null hypothesis of the P-value of the T statistics resulted a p-value less than 0.05 using double side test assuming H0 is true . 
+```{r}
+cor(data$x, data$y)
+cor.test(data$x, data$y, method="pearson")
+```
+p-value = 2.2e-16 is significantly smaller than 5% significant level , this provide avery strong evidence against the null hypothesis. There is a strong relation between subjects ECTS and interest of students. 
+
+
+Using Regression and ß1 coefficient : 
+
+H0 : there is no association between subject ECTS-credits and interest of students in this subject(ß1= zero)
+
+HA : there is an association between subject ECTS-credits and interest of students in this subject(ß1 not equal to zero)
+
+```{r}
+est <- lm(y~x , data = data)
+summary (est)
+```
+Same conclusion as before at p-value = 2.2e-16 and there is a strong relation between subjects ECTS and interest of students.
+
+## B2
+
+scatter plot: 
+```{r}
+ggplot(data , aes(x , y)) + geom_point() + geom_smooth(method = "lm" , se=FALSE)
+```
+
+The plot shows a postive linear association between response variable which is interest of students and explanatory variable the subject ECTS.This is justified by steep "lm" line in the plot.Therefore it confirms the alternative hypothesis from part B1.
+
+ß1 or effect size of subjects ECTS credits increase by one credit will on average increase the interest of students by 1.1503.
+
+## B3
+
+simple linear regression analysis:
+```{r}
+smodel <- lm(y~x , data = data)
+summary(smodel)
+plot(smodel , which = 1)
+```
+R-squared= 0.5568 (around 55%) variability of student interest are explained by this model which is plausible fit hence its only one explanatory variable. 
+
+ß-coefficient is the same From part B2 , its also known that the null hypothesis is rejected.By looking at F-value=123.1 & DF=98 and respective p-value =2.2e-16 the same as its still only ECTS credits only as explantory variables.
+
+In addition , it seems the linearity of x by looking at the residuals plot doesnt fit here.It follows a parabolic shape.
+
+## Including X and X-squared to the model:
+
+```{r}
+
+# interest = b0+b1*x +b2*xsqr+e
+ndata <- data %>% mutate(xsqr= x^2) # adding the new variable to ndata
+nmodel <- lm(y~ x + xsqr , data = ndata)
+summary(nmodel)
+plot(nmodel , which = 1)
+```
+
+The residual plot shows that the linearity of independent variables enhanced alot with thier relation with response variable the interest of students.
+
+
+## B4
+
+Comparsion : 
+
+p-value didnt change between simple model and the new model = 2.2e-16 , hence the null hypothesis is rejected.
+
+F-value changed from 123.1 to 98.1 in the model
+
+ß1 of subjects ECTS raised from 1.150 to 3.29564 in the new model.Now the average interest of student increase by this value when there is additional ECTS is added to the subject.
+
+ß2 of xsqr has negative coefficient in the new model which altered the parabolic shape of the simple model.It depicts the interest of student decreases on average by 0.12751 when the number of squared ECTS increases by one ECTS.
+
+# Variability : 
+
+In the simple model R-squared was 0.5568 (around 55%) , it increased to 0.6692 which approximately 11% more variability explanation in the new model or in another meaning 11% more fit to the new model.
+
+However R-squared is a bias estimator , hence it increases at each additional variable added to the multiple regression model thats why adjusted R-squared is reference for model evaluation. 
+
+
+adjusted R-squared was 0.5523 and becomes now 0.6623 in the new model which approximatly the same like the R-squared or coefficient of determination.Therefore the interpertation is the same.Regarding the fact that adjusted R-squared will always be slightly smaller than R-squared at any model.
+
+
+
+
+

@@ -1,0 +1,435 @@
+---
+title: "PartA"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Libraries 
+```{r}
+#loading all required libraries here first : 
+library(tidyverse)
+library(dplyr)
+library(broom)
+library(reghelper)
+library(latexpdf)
+library(psych) ### for skewness and kurtosis
+```
+
+## A1 
+Reading dataset
+
+```{r}
+#importing data and store it to variable "data1"  then vewing structure  of these data
+data <- read.csv(file ="C:/Users/Ghars/Documents/data/sheet1_partA.csv", sep = ";")
+
+str(data)
+
+```
+Mostly there are some wrong data in the data set , thus Data preperation firstly maintained before the analysis 
+
+The vairable “SCHOOL” and “BACHELOR” have missing values , dropping observations is adopted here. 
+
+In addition there are some negative valuable of bachelor and school , it doesnt make sense of someone who have -5 of bachelor . Omitting these observation will be better for our analysis
+
+```{r}
+#quantify how many missing values first 
+
+data[data<0] = NA  # changing negative values to NA as missing values
+colSums(is.na(data))
+data1 <- na.omit(data) #no missing values
+summary(data1$bachelor)
+summary(data1$school)
+```
+FOr the gender we will assume male = 1 and female = 2 in the data set.
+
+
+## A2
+
+Descriptive statistics of variables  "PERFORMANCE" and "SCHOOL"
+
+## Performance
+```{r}
+round(describeBy(data1$performance),3)
+```
+From the figure we see performance over all for both genders is between min = 2.674 and max= 4.840 , 25%-quantile = 3.555 , 50%-quantile = 4.029 , 75%-quantile = 4.433 , mean = 3.982,median = 4.029 and Standard deviation = 0.54
+
+According to the gender:
+```{r}
+describeBy(data1$performance , data1$sex)
+```
+Females scored average performance better (mean= 4.04) than the males (mean =3.92), but the variabilty of score for males is higher (sd = 0.57 & Performance of [2.67,4.82]) , while females achieved (sd = 0.52 & Performance of [3.19,4.84])  
+
+
+Regarding "Performance" we cannot conclude preceisly from standard deviation only and above descriptive statistics that the distribution is normally distributed and shaped like a bell curve .
+
+Graphing the variables will give us more sight on the distribution : 
+
+A histogram of Performance : 
+```{r}
+ggplot (data1, aes (x = performance, y = ..density..)) + 
+geom_histogram(bins = 30) +  
+geom_vline(xintercept=mean(data1$performance), color="blue") + geom_vline(xintercept=median(data1$performance), color="green")+ geom_density(size = 1.5, color = "red")
+
+hist(data1$performance)
+abline(v = mean(data1$performance), col = "blue", lwd = 3)
+
+ggplot(data1 , aes(sample = performance)) + stat_qq() + stat_qq_line()
+ggplot(data1 , aes(y=performance)) + geom_boxplot()
+
+
+```
+
+Here median = 4.029 ~ mean = 3.982 (median slightly larger than the mean) this implies a little left skewness . This also confirmed by the histogram . Also the box plot shows slight left skewness.
+
+
+To confirm our conclusion we will see skew value  using describeBy from psych library.
+
+As concluded skew is negative = -0.23 refers to skewness towards the left due to existance of some outliers at the left tail
+
+Regarding  kurtosis=-0.83	,it apepars the data are more located around the mean or there is a mass density under the mean and median as there are fewer outliers in the left tail of distribution.
+
+A negative kurtosis refers also to a flatter curve than a perfect normal distribution as shown from the density function at the histogram , because kurtosis is a measurement of taildness in the curve and we cannot infer only from its value that the curve has flatter distribution . 
+
+Moreover from the QQ-plot its seen that the distribution has light tails. 
+
+
+An apropriate normal distribution has the 3 sigma rule (68% , 95% and 99.7% lies within 3 standard deviations). By looking at the histogram and distribution this rule doesnt apply.
+
+Applying the rule in R : 
+```{r}
+3.98 + 1*0.54
+```
+The quantile after 1 sd = 4.52 hence the max value 4.84  , this means the assumptions failed and the performance is flat in the middle with light tails
+
+An apropriate measure is the T statistics with respect to standard error (sd/n) and df , since we dont know the population standard deviation of all candidates also.
+
+## School
+```{r}
+round(describeBy(data1$school),3)
+```
+From the figure we see School grade lies between min =  1.4 and max= 3.8  , 25%-quantile = 2 , 50%-quantile = 2.5 , 75%-quantile = 2.9 , mean = 2.45 and median = 2.5 and Standard deviation = 0.53.
+
+According to the gender:
+```{r}
+describeBy(data1$school , data1$sex)
+```
+Similarly to Performance females also school grade slightly better (mean= 2.57 ) than the male (mean =2.32 ), but the variabilty of score for males is higher (sd = 0.59 & grade of [1.4,3.8]) , while females achieved (sd = 0.43 & grade of [1.7,3.2])
+
+
+A histogram of School variable : 
+```{r}
+ggplot (data1, aes (x = school, y = ..density..)) +
+geom_histogram(bins = 30) +  
+geom_vline(xintercept=mean(data1$school), color="blue") + 
+geom_vline(xintercept=median(data1$school), color="green")+
+geom_density(size = 1.5, color = "red")
+
+hist(data1$school)
+abline(v = mean(data1$school), col = "blue", lwd = 3)
+
+ggplot(data1 , aes(sample = school)) + stat_qq() + stat_qq_line()
+ggplot(data1 , aes(y=school)) + geom_boxplot()
+
+
+```
+It appears School variable data is almost simliar to performance distribution with light tails too. however,its a little more symmetric around the mean with bimodal distribution and little more distributed than performance variable . The skewness is less of -0.08 and also kurtosis comparing with performance 
+
+
+## A3
+
+IV = Bachelor grade , DV = Performance
+
+Using Pearson Correlation test : 
+
+Correlation value between two variables lies [-1 & 1] , 
+
+H0 : there is no association between bachelor grade and performance (R= zero)
+
+HA : there is an association between bachelor grade and performance (R not equal to zero)
+Significance level or proability of type 1 error = 5 % 
+
+For this case we will use T statistics with df = n-2 = 59 
+we will reject the null hypothesis of the P-value of the T statistics resulted a p-value less than 0.05 using double side test assuming H0 is true . 
+
+```{r}
+cor(data1$bachelor, data1$performance)
+cor.test(data1$bachelor, data1$performance, method="pearson")
+```
+
+p-value = 0.223 , H0 failed to be rejected and there is no correlation between bachelor grade and performance.
+
+Using Regression and ß1 coefficient : 
+
+H0 : there is no association between bachelor grade and performance (ß1= zero)
+
+HA : there is an association between bachelor grade and performance ((ß1 not equal to zero))
+
+```{r}
+est <- lm(performance~bachelor , data = data1)
+summary (est)
+```
+ß1 = 0.1379 & p-value = 0.223 , H0 failed to be rejected and there is no correlation between bachelor grade and performance at p-value =0.223
+
+
+## Different IV : Performance ~  Age
+
+IV = age, DV = Performance
+
+Similarly as before , Using Pearson Correlation: test :
+ 
+H0 : there is no association between candidate age and performance (R= zero)
+
+HA : there is an association between candidate age and performance ((R not equal to zero))
+
+```{r}
+cor(data1$age, data1$performance)
+cor.test(data1$age, data1$performance, method="pearson")
+```
+
+p-value = 0.5423 , H0 failed to be rejected and there is no correlation between candidate age and performance.
+
+Using Regression and ß1 coefficient : 
+
+H0 : there is no association between candidate age and performance (ß1= zero)
+
+HA : there is an association between candidate age and performance ((ß1 not equal to zero))
+
+```{r}
+est0 <- lm(performance~age , data = data1)
+summary (est0)
+```
+ß1 = 0.01539  & p-value = 0.542
+
+H0 failed to be rejected and there is no correlation between candidate age and performance. 
+
+
+## A4
+
+Correlation table : 
+
+```{r}
+cor_table <- cor(data1)
+round(cor_table , 2)
+```
+From the table , r = [-1,1] when R is close to 1 this means high positive correlation , while R is close to -1 perfect negative correlation between variables. 
+
+Collinearity may affect efficieny of effect size ßi and not necessarily leads to bias estimation.Since Bachelor&School = 0.54,internships&interview = 0.46  are the highest among other positive and negative correlations. These correlations and not too high or close to one . Thus its not a big problem for the next multiple regression models
+
+Hypothesis test using regression  :
+
+```{r}
+est1 <- lm(performance~internships , data = data1)
+summary (est1)
+
+ggplot(data1,aes(internships,performance)) + geom_point()+ geom_smooth(method='lm' , se = FALSE)
+
+
+```
+
+Since p-value = 0.00878 , we reject the null hypothesis stating that there is no association between performance and number of previous internships.At this value we have a strong evidence against the null hypothesis and its accepted that there is association between performance and number of internships made by a candidate
+
+However , R-squared or correlation coefficient =  0.1108 indicates that the model is not agood fit and only 10% of performance variability described by this model and there are more variables need to be considered.
+
+
+## Step 3: “Regression Analysis”
+
+In all models, PERFORMANCE is the dependent variable.
+
+Since R-squared is a biased estimator for multiple regression analysis and increases when variable is added , the adjusted-R squared is the reference for a good model.
+
+Assumptions : 
+## 1)
+Independent variables linearity with Performance : Overall linearity exists between explanatory variables and Performance.
+
+```{r}
+ggplot(data1 , aes(age,performance)) + geom_point() + geom_smooth(method = "lm" , se = FALSE) #Performance ~ age
+ggplot(data1 , aes(sex,performance)) + geom_point() + geom_smooth(method = "lm" , se = FALSE) #Performance ~ sex
+ggplot(data1 , aes(school,performance)) + geom_point() + geom_smooth(method = "lm" , se = FALSE) #Performance ~ school grade
+ggplot(data1 , aes(bachelor,performance)) + geom_point() + geom_smooth(method = "lm" , se = FALSE) #Performance ~ Bachelor grade
+ggplot(data1 , aes(abroad,performance)) + geom_point() + geom_smooth(method = "lm" , se = FALSE) #Performance ~ abroad
+ggplot(data1 , aes(internships,performance)) + geom_point() + geom_smooth(method = "lm" , se = FALSE) #Performance ~ internships
+ggplot(data1 , aes(interview,performance)) + geom_point() + geom_smooth(method = "lm" , se = FALSE) #Performance ~ interview
+```
+## 2)
+
+Checking exogeneity assumption : this assumption is accepted here also , however there is a spurious correlation among internships , interviews and abroad as all of them are correlated the most with performance , but the correlation is not significant and thus its not addmissble to omit any of them 
+
+## 3)
+
+homoscedasticity assumption can be seen from residual plots 
+
+```{r}
+plot(lm(performance~age , data = data1) , which = 1) #performance~age
+plot(lm(performance~sex , data = data1) , which = 1) #performance~sex
+plot(lm(performance~school , data = data1) , which = 1) #performance~school
+plot(lm(performance~bachelor , data = data1) , which = 1) #performance~bachelor
+plot(lm(performance~abroad , data = data1) , which = 1) #performance~abroad
+plot(lm(performance~internships , data = data1) , which = 1) #performance~internships
+plot(lm(performance~interview , data = data1) , which = 1) #performance~internships
+
+```
+
+Overall variabilty is accepted even though there are some outliers in the models which is normal.  
+
+Multicorrinealty , variations already exists and auto correlation assumptions are assumed.
+
+
+## A5
+
+The R-squared value depicts the DV explained variability realised in each model and tell us about the model is agood fit or not.
+
+ßi(effect size) tell us how much response variable "Performance" on average increase/decrease at each additional unit of every independent variables holding others as constants at multiple regression
+
+F-value is a test that all ßi for every Independent variable are zero.Null hypothesis such that no association between performance and all independent variables. 
+
+hypothesis test for all models : 
+
+H0 : there is no association between performance and all explantory variables included in the model (all ßi or effect size of independent variables = zero)
+
+HA : There is an association between Performance and at least one of the explantory variables included in the model
+
+## Model 1 
+
+Model1: Age in years (AGE) and sex (SEX)
+```{r}
+model1 <- lm(performance ~ age + sex, data=data1)
+summary(model1)
+```
+R-squared Interpretation : the performace variability explained by the model is 0.01541 (1.5%) still a bad fit overall
+
+F-statistic: 0.4538 , p-value: 0.6375
+
+Interpretation : F value is large and thus we dont reject the null hypothesis which states all correlation coefficient are zero at p-value: 0.6375
+
+Explanatory variable : since the model doesnt fit there is no explanatory variable in this model
+
+## Model 2 
+
+Model 1 + school leaving grade (SCHOOL) and bachelor grade (BACHELOR)
+```{r}
+model2 <- lm(performance ~ age + sex + school + bachelor, data=data1)
+summary(model2)
+
+```
+R-squared = 0.1475
+
+Interpretation : the performace variability explained by the model becomes 0.1475 (almost 15%).
+
+F-statistic: 2.422 , p-value: 0.05881
+
+Interpretation : F value is lower = 2.422 , However the model is better than before but still larger than 5% signficance level as p-value = 0.05881 so we fail to reject the null hypothesis
+
+Explanatory variable : bachelor grade at p-value=0.02104 & School grade at p-value = 0.02104 both are lower than significant level.
+
+
+## Model 3
+
+Model3: Model 2 + total duration of previous stays abroad in months (ABROAD) and number of previously completed internships at home and abroad (INTERNSHIPS)
+
+```{r}
+model3 <- lm(performance ~ age + sex + school + bachelor + abroad + internships, data=data1)
+summary(model3)
+
+```
+R-squared = 0.2468
+
+Interpretation : the performace variability explained by the model increases to  0.2468 (almost 25%) . Adjusted R-squared increased to 0.1631.
+
+F-statistic: 2.949 , p-value: 0.01457
+
+Interpretation : at p-value = 0.01457 which is lower than the significance level of 5 % , we reject the null hypothesis that states that there is no association between all independent variables and performance of candidates.
+
+Explanatory variable : bachelor at p-value = 0.0159  , abroad at p-value = 0.0943 and internships at p-value = 0.0871.
+
+Now when h0 is rejected , its seen that bachelor grade , semesters abroad and number of internships has association with performance and each has effect size ßi (0.312876 ,0.022351 and 0.092698)respectively holding all equal.
+
+
+## Model 4
+
+Model4: Model 3 + performance in the interview (INTERVIEW)
+```{r}
+model4 <- lm(performance ~ age + sex + school + bachelor + abroad + internships + interview , data=data1)
+summary(model4)
+```
+R-squared = 0.3195
+
+Interpretation : the performace variability explained by the model increases to  0.3195 (almost 32%).
+
+Adjusted R-squared:0.2297 is the maximum so far and it indicates the model is not a perfect fit . only 22% variability of performance is explained in this model.
+
+F-statistic: 3.555 , p-value: 0.003321
+
+Interpretation : at p-value = 0.003321 which very low comparing with the significance level of 5%. There is a very strong evidence against the null hypothesis.Therefore , this model is confident against the H0 and provides a strong evidence to accept the HA that there is association between performance and the explantory variables specially the Interview performance and bachelor grade in this model.
+
+Explanatory variable : this time a notable effect size of interview performance at the first place at p-value = 0.0209 . then the bachelor grade which decreased alittle bit comparing with model3 at p-value= 0.0545 it outstand one of disadvantage of p-value appraoch as its very close to the significant level and it should be rejected.
+
+
+## Step 4: “Interpretation of the Regression Analysis Results” 
+
+##A6
+
+model4 is non-standardized : ßi of variables or effect size
+
+age-coefficient : holding all equal performance score increase on average by 0.01191 point when the candidate age increase one year.
+
+sex-coefficient : holding all equal performance score of one of the both sex is 0.04660 point higher than the other.
+
+```{r}
+ggplot(data1, aes(x = interview, y = performance, colour = factor(sex))) +  geom_point() + geom_smooth(method = "lm", se=FALSE)
+# visuallising gender performance with respect to male and females with thier respective interview score.
+# now its obvious that sex 2 (females) are the reference variables and they have higher average performance score than sex 1(males) by 0.04660 point
+```
+
+School-coefficient: performance score decreases by -0.19204 when school grade increase by one unit holding others as constants.
+
+Bachelor-coefficient: holding all equal performance increases on average 0.24380 point at each additional bachelor grade point.
+
+Abroad-coefficient: when number of semester increase by one candidate is expected to achieve more on 0.01532 performance score.
+
+Internships-coefficient : its expected that candidate will achieve  0.03704 point more score at each additional internships.
+
+Interview-coefficient : at interview when the candidate achive one point this will increase the over all performance score by 0.33989 point.
+
+Strongest effect here is interview-coefficient ß=0.33989.
+
+## standardized coefficients: 
+
+```{r}
+# standardizing ß coeifficents with beta function from reghelper package
+model4_z <- beta(model4)
+model4_z
+```
+Strongest standardized effect here is interview-coefficient ß= 0.0327.
+
+age-Zcoefficient : for an increase of 1 standard deviation of age and holding all equal performance score increase on average by 0.06159
+
+sex-Zcoefficient : for an increase of 1 standard deviation of females data and holding all equal thier performance score increase on average by 0.04317 more than the males 
+
+School-Zcoefficient: for an increase of 1 standard deviation of school data and holding all equal performance score decrease on average by -0.1857.
+
+Bachelor-Zcoefficient: for an increase of 1 standard deviation of bachelor and holding all equal performance score increase on average by 0.2798
+
+Abroad-Zcoefficient: for an increase of 1 standard deviation of abroad data and holding all equal performance score increase on average by 0.1530
+
+Internships-Zcoefficient : for an increase of 1 standard deviation of internships data and holding all equal performance score increase on average by 0.09250
+
+Interview-Zcoefficient : for an increase of 1 standard deviation of interview score data and holding all equal performance score increase on average by 0.3270
+
+## Hypothesis at 5% and 10% significance level : 
+
+F-statistic: 3.555 & p-value: 0.003321 :
+
+The p-value is lower than  both signficance and provides a strong evidence against the null hypothesis. This confirm our alternative hypothesis that there is an association between explantaory variables in model 4 and performance.
+
+
+## Decesion on the interview : 
+
+Based on the Adjusted R-squared=0.2297 (almost 23%) variability of performance is described by the model , it tells us that the model is not a perfect fit over all. 
+
+However from the empirical analysis interview must be proceeded as it has the most effect size on overall performance . This is justified over all part A questions.
